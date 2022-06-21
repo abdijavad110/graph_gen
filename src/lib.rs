@@ -28,6 +28,7 @@ use rand::thread_rng;
 use rand::distributions::{Distribution, Uniform};
 use rand::rngs::ThreadRng;
 use std::collections::HashMap;
+use rayon::prelude::*;
 
 /// The configuration of an Erdos-Renyi G(n, p) model.
 #[derive(Debug, Clone, Copy)]
@@ -158,32 +159,21 @@ impl Graph {
         // FIXME: add support for all kind of graphs
         out.push("AdjacencyGraph".to_string());
         out.push(format!("{}", self.n));
-        out.push(format!("{}", self.list.len()));
+        out.push(format!("{}", self.list.len() * 2));
 
-        if self.list.len() != 0 {
-            let mut edg_out = vec![];
-
-            let mut edges: Vec<(_, _)> = self.list.iter().map(|(e, _)| (e.src.id - 1, e.dst.id - 1)).collect();
-            let edges_rev: Vec<(isize, isize)> = (&edges).iter().map(|(s, d)| (*d, *s)).collect();
-            edges.extend(&edges_rev);
-            edges.sort();
-
-            let mut offsets = vec![0usize; self.n + 1];
-            let mut last_node = 0usize;
-            for (a, b) in edges {
-                while last_node as isize != a {
-                    last_node += 1;
-                    offsets[last_node + 1] = offsets[last_node];
-                }
-                offsets[last_node + 1] += 1;
-                edg_out.push(format!("{}", b));
-            }
-
-            offsets.iter().for_each(|o| {
-                out.push(o.to_string());
-            });
-            out.extend(edg_out);
-        }
+        
+        let mut edges: Vec<(_, _)> = self.list.par_iter().map(|(e, _)| (e.src.id - 1, e.dst.id - 1)).collect();
+        let edges_rev: Vec<(isize, isize)> = (&edges).par_iter().map(|(s, d)| (*d, *s)).collect();
+        edges.par_extend(&edges_rev);
+        edges.par_sort();
+        
+        let mut offsets = vec![0usize; self.n + 1];
+        for (a, _) in &edges { offsets[*a as usize + 1] += 1; }
+        out.push(offsets[0].to_string());
+        for i in 0..self.n { offsets[i+1] += offsets[i]; out.push(offsets[i+1].to_string()); }
+        let edg_out: Vec<_> = (&edges).par_iter().map(|(_, b)| b).collect();
+        let edg_out: Vec<_> = (&edg_out).par_iter().map(|q| q.to_string()).collect();
+        out.par_extend(edg_out);
 
         out.join("\n")
     }

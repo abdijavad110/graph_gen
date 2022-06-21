@@ -13,5 +13,6 @@ description   = "Generate pseudo-random graphs based on the Erdos-Renyi G(n,p) m
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand      = "0.7.3"
+rand      = "0.8.5"
 structopt = "0.3.12"
+rayon     = "1.5.3"
