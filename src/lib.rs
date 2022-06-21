@@ -151,6 +151,42 @@ impl Graph {
 
         out.join("\n")
     }
+
+    pub fn to_csr(&self) -> String {
+        let mut out = vec![];
+        
+        // FIXME: add support for all kind of graphs
+        out.push("AdjacencyGraph".to_string());
+        out.push(format!("{}", self.n));
+        out.push(format!("{}", self.list.len()));
+
+        if self.list.len() != 0 {
+            let mut edg_out = vec![];
+
+            let mut edges: Vec<(_, _)> = self.list.iter().map(|(e, _)| (e.src.id - 1, e.dst.id - 1)).collect();
+            let edges_rev: Vec<(isize, isize)> = (&edges).iter().map(|(s, d)| (*d, *s)).collect();
+            edges.extend(&edges_rev);
+            edges.sort();
+
+            let mut offsets = vec![0usize; self.n + 1];
+            let mut last_node = 0usize;
+            for (a, b) in edges {
+                while last_node as isize != a {
+                    last_node += 1;
+                    offsets[last_node + 1] = offsets[last_node];
+                }
+                offsets[last_node + 1] += 1;
+                edg_out.push(format!("{}", b));
+            }
+
+            offsets.iter().for_each(|o| {
+                out.push(o.to_string());
+            });
+            out.extend(edg_out);
+        }
+
+        out.join("\n")
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -275,6 +311,12 @@ impl Generatable {
             Generatable::GenGraph {g} => g.to_dot(),
             Generatable::ClqGraph {g} => g.to_dot(),
             Generatable::GenSat   {s} => s.to_dot()
+        }
+    }
+    pub fn to_csr(&self) -> String {
+        match self {
+            Generatable::GenGraph {g} => g.to_csr(),
+            _ => unimplemented!("CSR only supports Graphs.")
         }
     }
 }

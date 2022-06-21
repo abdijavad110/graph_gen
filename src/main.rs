@@ -41,7 +41,7 @@ struct Args {
     #[structopt(name="max2sat", short, long)]
     max2sat: bool,
     /// If set, the generated graph will be a misp/maxclique instance
-    #[structopt(name="misp", short, long)]
+    #[structopt(name="misp", long)]
     misp: bool,
     /// The output language (defaults to dimacs)
     #[structopt(name="output", short, long)]
@@ -51,7 +51,7 @@ struct Args {
     weights: Option<Vec<isize>>
 }
 enum Output {
-    Dimacs, GraphViz
+    Dimacs, GraphViz, CSR
 }
 impl Default for Output {
     fn default() -> Self {
@@ -70,6 +70,9 @@ impl FromStr for Output {
         }
         if &txt.to_lowercase() == "dot" {
             return Ok(Output::GraphViz);
+        }
+        if &txt.to_lowercase() == "csr" {
+            return Ok(Output::CSR);
         }
 
         Err(txt.to_owned())
@@ -128,7 +131,8 @@ impl Args {
             None => g.to_dimacs(),
             Some(o) => match o {
                 Output::Dimacs   => g.to_dimacs(),
-                Output::GraphViz => g.to_dot()
+                Output::GraphViz => g.to_dot(),
+                Output::CSR => g.to_csr(),
             }
         }
     }
